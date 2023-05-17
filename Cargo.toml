@@ -41,7 +41,7 @@ html-escape = "0.2.13"
 bitvec = { version = "1.0.1", features = ["serde"] }
 enum_dispatch = "0.3.11"
 lazy_static = "1.4.0"
-portmatching = { git = "https://github.com/lmondada/portmatching.git", rev = "aaeaf366", optional = true }
+portmatching = { path = "../portmatching" , optional = true }
 
 [features]
 pyo3 = ["dep:pyo3"]

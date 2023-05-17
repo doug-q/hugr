@@ -1,4 +1,6 @@
-use crate::{ops::OpType, Hugr};
+//! Patterns for matching Hugr graphs.
+
+use crate::{ops::LeafOp, Hugr};
 
 use portmatching::{
     pattern::{self, Edge},
@@ -6,10 +8,10 @@ use portmatching::{
 };
 
 /// A pattern for matching Hugr graphs.
-pub struct HugrPattern(WeightedPattern<OpType>);
+pub struct HugrPattern(WeightedPattern<LeafOp>);
 
 impl Pattern for HugrPattern {
-    type Constraint = <WeightedPattern<OpType> as Pattern>::Constraint;
+    type Constraint = <WeightedPattern<LeafOp> as Pattern>::Constraint;
 
     fn graph(&self) -> &portgraph::PortGraph {
         self.0.graph()
@@ -30,7 +32,7 @@ impl Pattern for HugrPattern {
 
 impl HugrPattern {
     /// Create a new HugrPattern from a WeightedPattern.
-    pub fn new(pattern: WeightedPattern<OpType>) -> Self {
+    pub fn new(pattern: WeightedPattern<LeafOp>) -> Self {
         Self(pattern)
     }
 

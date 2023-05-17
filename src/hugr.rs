@@ -412,24 +412,43 @@ impl Wire {
     /// Currently ignores hierarchy and any non-dataflow ops.
     #[cfg(feature = "patternmatching")]
     pub fn into_pattern(self) -> Result<HugrPattern, pattern::InvalidPattern> {
+        use std::mem;
+
+        use crate::ops::DataflowOp;
         use portmatching::WeightedPattern;
 
         let Hugr {
             mut graph,
-            op_types,
+            mut op_types,
             ..
         } = self;
 
-        // Remove non-dataflow nodes
-        // TODO : remove in/outputs?
+        // Remove non-dataflow nodes and input/output
         let nodes = graph.nodes_iter().collect::<Vec<_>>();
         for n in nodes {
             if !matches!(op_types[n], OpType::Dataflow(_)) {
                 graph.remove_node(n);
+                op_types[n] = Default::default();
+            } else if matches!(
+                op_types[n],
+                OpType::Dataflow(DataflowOp::Input { .. })
+                    | OpType::Dataflow(DataflowOp::Output { .. })
+            ) {
+                graph.remove_node(n);
+                op_types[n] = Default::default();
             }
         }
 
-        let pattern = WeightedPattern::from_weighted_graph(graph, op_types)?;
+        let mut leaf_ops = SecondaryMap::new();
+
+        for n in graph.nodes_iter() {
+            let OpType::Dataflow(DataflowOp::Leaf { op }) = mem::take(&mut op_types[n]) else {
+                panic!("Found unexpected non-leaf type op");
+            };
+            leaf_ops[n] = op;
+        }
+
+        let pattern = WeightedPattern::from_weighted_graph(graph, leaf_ops)?;
         Ok(HugrPattern::new(pattern))
     }
 }

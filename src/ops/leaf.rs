@@ -65,6 +65,19 @@ impl Default for LeafOp {
         Self::Noop(SimpleType::default())
     }
 }
+
+impl Ord for LeafOp {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name().cmp(&other.name())
+    }
+}
+
+impl PartialOrd for LeafOp {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl OpName for LeafOp {
     /// The name of the operation.
     fn name(&self) -> SmolStr {
