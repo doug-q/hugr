@@ -22,6 +22,7 @@ use thiserror::Error;
 pub use self::view::HugrView;
 use crate::ops::tag::OpTag;
 use crate::ops::{OpName, OpTrait, OpType};
+use crate::pattern::HugrPattern;
 use crate::replacement::{SimpleReplacement, SimpleReplacementError};
 use crate::rewrite::{Rewrite, RewriteError};
 use crate::types::EdgeKind;
@@ -404,6 +405,18 @@ impl Wire {
     #[inline]
     pub fn source(&self) -> Port {
         Port::new_outgoing(self.1)
+    }
+
+    /// Consume Hugr into a pattern for matching.
+    #[cfg(feature = "patternmatching")]
+    pub fn into_pattern(self) -> Result<HugrPattern, pattern::InvalidPattern> {
+        use portmatching::WeightedPattern;
+
+        let Hugr {
+            graph, op_types, ..
+        } = self;
+        let pattern = WeightedPattern::from_weighted_graph(graph, op_types)?;
+        Ok(HugrPattern::new(pattern))
     }
 }
 

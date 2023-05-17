@@ -20,6 +20,8 @@ pub mod resource;
 pub mod rewrite;
 pub mod types;
 mod utils;
+#[cfg(feature = "patternmatching")]
+pub mod pattern;
 
 pub use crate::hugr::{Direction, Hugr, Node, Port, Wire};
 pub use crate::replacement::SimpleReplacement;
