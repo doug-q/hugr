@@ -16,12 +16,12 @@ pub mod hugr;
 pub mod macros;
 pub mod ops;
 pub mod replacement;
+#[cfg(feature = "patternmatching")]
+pub mod pattern;
 pub mod resource;
 pub mod rewrite;
 pub mod types;
 mod utils;
-#[cfg(feature = "patternmatching")]
-pub mod pattern;
 
 pub use crate::hugr::{Direction, Hugr, Node, Port, Wire};
 pub use crate::replacement::SimpleReplacement;

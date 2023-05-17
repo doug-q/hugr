@@ -408,13 +408,27 @@ impl Wire {
     }
 
     /// Consume Hugr into a pattern for matching.
+    ///
+    /// Currently ignores hierarchy and any non-dataflow ops.
     #[cfg(feature = "patternmatching")]
     pub fn into_pattern(self) -> Result<HugrPattern, pattern::InvalidPattern> {
         use portmatching::WeightedPattern;
 
         let Hugr {
-            graph, op_types, ..
+            mut graph,
+            op_types,
+            ..
         } = self;
+
+        // Remove non-dataflow nodes
+        // TODO : remove in/outputs?
+        let nodes = graph.nodes_iter().collect::<Vec<_>>();
+        for n in nodes {
+            if !matches!(op_types[n], OpType::Dataflow(_)) {
+                graph.remove_node(n);
+            }
+        }
+
         let pattern = WeightedPattern::from_weighted_graph(graph, op_types)?;
         Ok(HugrPattern::new(pattern))
     }
