@@ -22,7 +22,10 @@ use thiserror::Error;
 pub use self::view::HugrView;
 use crate::ops::tag::OpTag;
 use crate::ops::{OpName, OpTrait, OpType};
-use crate::pattern::HugrPattern;
+#[cfg(feature = "patternmatching")]
+use crate::pattern::{HugrPattern};
+#[cfg(feature = "patternmatching")]
+use portmatching::pattern::InvalidPattern;
 use crate::replacement::{SimpleReplacement, SimpleReplacementError};
 use crate::rewrite::{Rewrite, RewriteError};
 use crate::types::EdgeKind;
@@ -324,6 +327,46 @@ impl Hugr {
             },
         )
     }
+
+    /// Consume Hugr into a pattern for matching.
+    ///
+    /// Currently ignores hierarchy and any non-dataflow ops.
+    #[cfg(feature = "patternmatching")]
+    pub fn to_pattern(&self) -> Result<HugrPattern, InvalidPattern> {
+        use std::mem;
+
+        use portmatching::WeightedPattern;
+
+        let Hugr {
+            ref graph,
+            ref op_types,
+            ..
+        } = self;
+
+        // TODO: support MultiPortGraph
+        let mut graph = graph.as_portgraph().clone();
+
+        // Remove non-dataflow nodes and input/output
+        let nodes = graph.nodes_iter().collect::<Vec<_>>();
+        for n in nodes {
+            if !matches!(op_types[n], OpType::LeafOp(_)) {
+                graph.remove_node(n);
+            }
+        }
+
+        let mut leaf_ops = UnmanagedDenseMap::new();
+
+        for n in graph.nodes_iter() {
+            let OpType::LeafOp(op) = op_types.get(n) else {
+                panic!("just removed non-leaf type op");
+            };
+            leaf_ops[n] = op.clone();
+        }
+
+        // TODO: support MultiPortGraph
+        let pattern = WeightedPattern::from_weighted_graph(graph, leaf_ops)?;
+        Ok(HugrPattern::new(pattern))
+    }
 }
 
 /// Internal API for HUGRs, not intended for use by users.
@@ -405,51 +448,6 @@ impl Wire {
     #[inline]
     pub fn source(&self) -> Port {
         Port::new_outgoing(self.1)
-    }
-
-    /// Consume Hugr into a pattern for matching.
-    ///
-    /// Currently ignores hierarchy and any non-dataflow ops.
-    #[cfg(feature = "patternmatching")]
-    pub fn into_pattern(self) -> Result<HugrPattern, pattern::InvalidPattern> {
-        use std::mem;
-
-        use crate::ops::DataflowOp;
-        use portmatching::WeightedPattern;
-
-        let Hugr {
-            mut graph,
-            mut op_types,
-            ..
-        } = self;
-
-        // Remove non-dataflow nodes and input/output
-        let nodes = graph.nodes_iter().collect::<Vec<_>>();
-        for n in nodes {
-            if !matches!(op_types[n], OpType::Dataflow(_)) {
-                graph.remove_node(n);
-                op_types[n] = Default::default();
-            } else if matches!(
-                op_types[n],
-                OpType::Dataflow(DataflowOp::Input { .. })
-                    | OpType::Dataflow(DataflowOp::Output { .. })
-            ) {
-                graph.remove_node(n);
-                op_types[n] = Default::default();
-            }
-        }
-
-        let mut leaf_ops = SecondaryMap::new();
-
-        for n in graph.nodes_iter() {
-            let OpType::Dataflow(DataflowOp::Leaf { op }) = mem::take(&mut op_types[n]) else {
-                panic!("Found unexpected non-leaf type op");
-            };
-            leaf_ops[n] = op;
-        }
-
-        let pattern = WeightedPattern::from_weighted_graph(graph, leaf_ops)?;
-        Ok(HugrPattern::new(pattern))
     }
 }
 

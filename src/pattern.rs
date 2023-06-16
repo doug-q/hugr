@@ -37,7 +37,7 @@ impl HugrPattern {
     }
 
     /// Create a new pattern from a [`Hugr`].
-    pub fn from_hugr(hugr: Hugr) -> Result<Self, pattern::InvalidPattern> {
-        hugr.into_pattern()
+    pub fn from_hugr(hugr: &Hugr) -> Result<Self, pattern::InvalidPattern> {
+        hugr.to_pattern()
     }
 }
