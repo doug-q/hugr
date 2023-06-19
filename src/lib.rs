@@ -15,9 +15,9 @@ pub mod extensions;
 pub mod hugr;
 pub mod macros;
 pub mod ops;
-pub mod replacement;
 #[cfg(feature = "patternmatching")]
 pub mod pattern;
+pub mod replacement;
 pub mod resource;
 pub mod rewrite;
 pub mod types;

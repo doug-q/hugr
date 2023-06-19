@@ -205,7 +205,7 @@ where
 }
 
 /// Iterator over the links of a port
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PortLinks<'a> {
     hugr: &'a Hugr,
     links: crate::hugr::multiportgraph::PortLinks<'a>,

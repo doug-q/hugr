@@ -2,6 +2,8 @@
 
 mod hugrmut;
 
+#[cfg(feature = "patternmatching")]
+pub mod circuit_hugr;
 pub mod multiportgraph;
 pub mod serialize;
 pub mod typecheck;
@@ -17,19 +19,17 @@ pub use self::validate::ValidationError;
 use derive_more::From;
 use itertools::Itertools;
 use portgraph::dot::{hier_graph_dot_string_with, DotEdgeStyle};
-use portgraph::{Hierarchy, NodeIndex, UnmanagedDenseMap};
+use portgraph::{Hierarchy, NodeIndex, PortGraph, UnmanagedDenseMap};
 use thiserror::Error;
 
 pub use self::view::HugrView;
 use crate::ops::tag::OpTag;
-use crate::ops::{OpName, OpTrait, OpType};
-#[cfg(feature = "patternmatching")]
-use crate::pattern::{HugrPattern};
-#[cfg(feature = "patternmatching")]
-use portmatching::pattern::InvalidPattern;
+use crate::ops::{LeafOp, OpName, OpTrait, OpType};
 use crate::replacement::{SimpleReplacement, SimpleReplacementError};
 use crate::rewrite::{Rewrite, RewriteError};
 use crate::types::EdgeKind;
+#[cfg(feature = "patternmatching")]
+pub use circuit_hugr::CircuitHugr;
 
 use html_escape::encode_text_to_string;
 
@@ -329,44 +329,21 @@ impl Hugr {
         )
     }
 
-    /// Consume Hugr into a pattern for matching.
+    /// HUGR as a simple weighted portgraph.
     ///
-    /// Currently ignores hierarchy and any non-dataflow ops.
-    #[cfg(feature = "patternmatching")]
-    pub fn to_pattern(&self) -> Result<HugrPattern, InvalidPattern> {
-        use std::mem;
+    /// Very naive, assumes the HUGR has no hierarchy.
+    // TODO: do not rebuild leaf_ops every time
+    pub fn as_weighted_graph(&self) -> (&PortGraph, UnmanagedDenseMap<NodeIndex, LeafOp>) {
+        let mut leaf_ops = UnmanagedDenseMap::new();
 
-        use portmatching::WeightedPattern;
-
-        let Hugr {
-            ref graph,
-            ref op_types,
-            ..
-        } = self;
-
-        // TODO: support MultiPortGraph
-        let mut graph = graph.as_portgraph().clone();
-
-        // Remove non-dataflow nodes and input/output
-        let nodes = graph.nodes_iter().collect::<Vec<_>>();
-        for n in nodes {
-            if !matches!(op_types[n], OpType::LeafOp(_)) {
-                graph.remove_node(n);
+        for n in self.graph.nodes_iter() {
+            let op = &self.op_types[n];
+            if let OpType::LeafOp(leaf_op) = op {
+                leaf_ops[n] = leaf_op.clone();
             }
         }
 
-        let mut leaf_ops = UnmanagedDenseMap::new();
-
-        for n in graph.nodes_iter() {
-            let OpType::LeafOp(op) = op_types.get(n) else {
-                panic!("just removed non-leaf type op");
-            };
-            leaf_ops[n] = op.clone();
-        }
-
-        // TODO: support MultiPortGraph
-        let pattern = WeightedPattern::from_weighted_graph(graph, leaf_ops)?;
-        Ok(HugrPattern::new(pattern))
+        (self.graph.as_portgraph(), leaf_ops)
     }
 }
 

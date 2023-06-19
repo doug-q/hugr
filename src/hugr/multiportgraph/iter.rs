@@ -256,7 +256,7 @@ impl<'a> Iterator for NodeConnections<'a> {
 impl<'a> FusedIterator for NodeConnections<'a> {}
 
 /// Iterator over the links of a port
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub enum PortLinks<'a> {
     /// The port is not a multiport. The iterator returns exactly one link.

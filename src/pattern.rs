@@ -1,6 +1,6 @@
 //! Patterns for matching Hugr graphs.
 
-use crate::{ops::LeafOp, Hugr};
+use crate::{hugr::circuit_hugr::CircuitHugr, ops::LeafOp};
 
 use portmatching::{
     pattern::{self, Edge},
@@ -8,6 +8,7 @@ use portmatching::{
 };
 
 /// A pattern for matching Hugr graphs.
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct HugrPattern(WeightedPattern<LeafOp>);
 
 impl Pattern for HugrPattern {
@@ -36,8 +37,8 @@ impl HugrPattern {
         Self(pattern)
     }
 
-    /// Create a new pattern from a [`Hugr`].
-    pub fn from_hugr(hugr: &Hugr) -> Result<Self, pattern::InvalidPattern> {
-        hugr.to_pattern()
+    /// Create a new pattern from a [`CircuitHugr`].
+    pub fn from_circuit(hugr: CircuitHugr) -> Result<Self, pattern::InvalidPattern> {
+        hugr.into_pattern()
     }
 }
