@@ -15,6 +15,7 @@ use self::multiportgraph::MultiPortGraph;
 pub use self::validate::ValidationError;
 
 use derive_more::From;
+use itertools::Itertools;
 use portgraph::dot::{hier_graph_dot_string_with, DotEdgeStyle};
 use portgraph::{Hierarchy, NodeIndex, UnmanagedDenseMap};
 use thiserror::Error;
@@ -141,7 +142,7 @@ impl Hugr {
         // TODO This will probably change when implicit copies are implemented.
         for &node in replacement_inner_nodes {
             let new_node_index = index_map.get(&node.index).unwrap();
-            for node_successor in r.replacement.output_neighbours(node) {
+            for node_successor in r.replacement.output_neighbours(node).unique() {
                 if r.replacement.get_optype(node_successor).tag() != OpTag::Output {
                     let new_node_successor_index = index_map.get(&node_successor.index).unwrap();
                     for connection in r
