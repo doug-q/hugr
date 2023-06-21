@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{hugr::Node, Hugr, Port};
+use crate::{hugr::Node, Hugr, Port, convex::ConvexChecker};
 use thiserror::Error;
 
 /// Specification of a simple replacement operation.
@@ -38,6 +38,12 @@ impl SimpleReplacement {
             nu_inp,
             nu_out,
         }
+    }
+
+    /// Whether the set of nodes form a convex set.
+    pub fn is_convex(&self, checker: &mut ConvexChecker<'_>) -> bool {
+        let nodes = self.removal.iter().map(|&n| n.index);
+        checker.is_convex(nodes)
     }
 }
 

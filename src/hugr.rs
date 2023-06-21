@@ -70,7 +70,7 @@ impl AsMut<Hugr> for Hugr {
 /// A handle to a node in the HUGR.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, From)]
 pub struct Node {
-    index: portgraph::NodeIndex,
+    pub(crate) index: portgraph::NodeIndex,
 }
 
 /// A handle to a port for a node in the HUGR.

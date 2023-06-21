@@ -1,11 +1,13 @@
 //! A simple Hugr for circuit-like computations
 use std::collections::{HashMap, HashSet};
+use std::fs;
 
 use itertools::Itertools;
 use portgraph::algorithms::toposort;
 use portgraph::{Direction, NodeIndex, PortGraph, UnmanagedDenseMap};
 use portmatching::pattern::InvalidPattern;
 
+use crate::convex::ConvexChecker;
 use crate::ops::dataflow::IOTrait;
 use crate::ops::{Input, Output};
 use crate::{
@@ -94,6 +96,11 @@ impl CircuitHugr {
     /// The number of nodes in the circuit
     pub fn node_count(&self) -> usize {
         self.hugr().node_count() - 1
+    }
+
+    /// A convexity checker for the circuit
+    pub fn convex_checker(&self, root: Node) -> ConvexChecker<'_> {
+        ConvexChecker::new(root.index, self.graph())
     }
 
     /// Wires in circuit with no gates
@@ -285,19 +292,25 @@ impl CircuitHugr {
                 )
             },
         );
-        let linked_port = |hugr: &Hugr, n, p| hugr.linked_ports(n, p).exactly_one().unwrap();
+        let linked_port = |hugr: &Hugr, n, p| hugr.linked_ports(n, p).next().unwrap();
         let embedded_inputs = self
             .input_ports()
             .map(|p| linked_port(self.hugr(), self.input_node(), p))
             .map(|(n, p)| (embedding[&n.index].into(), p));
         let newc_inputs = newc
             .input_ports()
-            .map(|p| linked_port(newc.hugr(), newc.input_node(), p));
-        let inputs = newc_inputs.zip(embedded_inputs).collect();
+            // There might be more than one linked port, in which case they
+            // all map to the same embedded port
+            .map(|p| newc.hugr().linked_ports(newc.input_node(), p));
+        let inputs = newc_inputs
+            .zip(embedded_inputs)
+            .flat_map(|(new, old)| new.zip(iter::repeat(old)))
+            .collect();
         let embedded_outputs = self
             .output_ports()
             .map(|p| linked_port(self.hugr(), self.output_node(), p))
             .map(|(n, p)| (embedding[&n.index].into(), p))
+            // TODO: can this lead to the wrong port?
             .map(|(n, p)| linked_port(within, n, p));
         let outputs = embedded_outputs.zip(newc.output_ports()).collect();
         let parent = within.get_parent(within_root)?;
@@ -405,8 +418,11 @@ fn op_hash(op: &OpType) -> Option<usize> {
             LeafOp::AddF64 => 7,
             LeafOp::RxF64 => 8,
             LeafOp::RzF64 => 9,
+            LeafOp::X => 10,
             _ => return None,
         },
+        // copy nodes show up as module
+        OpType::Module(_) => 0,
         _ => return None,
     })
 }
