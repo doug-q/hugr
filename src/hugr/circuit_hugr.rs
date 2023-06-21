@@ -1,6 +1,5 @@
 //! A simple Hugr for circuit-like computations
 use std::collections::{HashMap, HashSet};
-use std::fs;
 
 use itertools::Itertools;
 use portgraph::algorithms::toposort;
@@ -401,22 +400,11 @@ fn op_hash(op: &OpType) -> Option<usize> {
             LeafOp::CX => 2,
             LeafOp::ZZMax => 3,
             LeafOp::Reset => 4,
-            LeafOp::Noop(_) => 7,
-            LeafOp::Measure => 8,
-            // Op::Barrier => 9,
-            // Op::AngleAdd => 10,
-            // Op::AngleMul => 11,
-            // Op::AngleNeg => 12,
-            // Op::QuatMul => 13,
-            // Op::Copy { n_copies, typ } => todo!(),
-            // Op::RxF64 => 14,
-            LeafOp::RzF64 => 15,
-            // Op::TK1 => 16,
-            // Op::Rotation => 17,
-            // Op::ToRotation => 18,
-            // should Const of different values be hash different?
-            // Op::Const(_) => 19,
-            // Op::Custom(_) => todo!(),
+            LeafOp::Noop(_) => 5,
+            LeafOp::Measure => 6,
+            LeafOp::AddF64 => 7,
+            LeafOp::RxF64 => 8,
+            LeafOp::RzF64 => 9,
             _ => return None,
         },
         _ => return None,

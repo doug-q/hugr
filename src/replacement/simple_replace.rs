@@ -58,7 +58,6 @@ pub enum SimpleReplacementError {
 #[cfg(test)]
 mod test {
     use std::collections::{HashMap, HashSet};
-    use std::fs;
 
     use itertools::Itertools;
     use portgraph::Direction;
@@ -72,7 +71,7 @@ mod test {
     use crate::ops::tag::OpTag;
     use crate::ops::{LeafOp, OpTrait, OpType};
     use crate::types::{LinearType, Signature, SimpleType};
-    use crate::{replacement, type_row, Port};
+    use crate::{type_row, Port};
 
     use super::SimpleReplacement;
 

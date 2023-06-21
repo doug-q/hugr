@@ -45,8 +45,12 @@ pub enum LeafOp {
     Measure,
     /// A rotation of a qubit about the Pauli Z axis by an input float angle.
     RzF64,
+    /// A rotation of a qubit about the Pauli X axis by an input float angle.
+    RxF64,
     /// A bitwise XOR operation.
     Xor,
+    /// Floating point addition.
+    AddF64,
     /// An operation that packs all its inputs into a tuple.
     MakeTuple(TypeRow),
     /// An operation that unpacks a tuple into its components.
@@ -97,10 +101,12 @@ impl OpName for LeafOp {
             LeafOp::Noop(_) => "Noop",
             LeafOp::Measure => "Measure",
             LeafOp::Xor => "Xor",
+            LeafOp::AddF64 => "Add",
             LeafOp::MakeTuple(_) => "MakeTuple",
             LeafOp::UnpackTuple(_) => "UnpackTuple",
             LeafOp::Tag { .. } => "Tag",
             LeafOp::RzF64 => "RzF64",
+            LeafOp::RxF64 => "RxF64",
         }
         .into()
     }
@@ -125,10 +131,12 @@ impl OpTrait for LeafOp {
             LeafOp::Noop(_) => "Noop gate",
             LeafOp::Measure => "Qubit measurement gate",
             LeafOp::Xor => "Bitwise XOR",
+            LeafOp::AddF64 => "F64 Addition",
             LeafOp::MakeTuple(_) => "MakeTuple operation",
             LeafOp::UnpackTuple(_) => "UnpackTuple operation",
             LeafOp::Tag { .. } => "Tag Sum operation",
             LeafOp::RzF64 => "Rz rotation.",
+            LeafOp::RxF64 => "Rx rotation.",
         }
     }
 
@@ -158,6 +166,7 @@ impl OpTrait for LeafOp {
             LeafOp::CX | LeafOp::ZZMax => Signature::new_linear(type_row![Q, Q]),
             LeafOp::Measure => Signature::new_df(type_row![Q], type_row![Q, B]),
             LeafOp::Xor => Signature::new_df(type_row![B, B], type_row![B]),
+            LeafOp::AddF64 => Signature::new_df(type_row![F, F], type_row![F]),
             LeafOp::CustomOp(opaque) => opaque.signature(),
             LeafOp::MakeTuple(types) => {
                 Signature::new_df(types.clone(), vec![SimpleType::new_tuple(types.clone())])
@@ -169,7 +178,7 @@ impl OpTrait for LeafOp {
                 vec![variants.get(*tag).expect("Not a valid tag").clone()],
                 vec![SimpleType::new_sum(variants.clone())],
             ),
-            LeafOp::RzF64 => Signature::new_df(type_row![Q, F], type_row![Q]),
+            LeafOp::RzF64 | LeafOp::RxF64 => Signature::new_df(type_row![Q, F], type_row![Q]),
         }
     }
 
