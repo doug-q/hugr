@@ -43,7 +43,8 @@ impl SimpleReplacement {
     /// Whether the set of nodes form a convex set.
     pub fn is_convex(&self, checker: &mut ConvexChecker<'_>) -> bool {
         let nodes = self.removal.iter().map(|&n| n.index);
-        checker.is_convex(nodes)
+        let output_is_input = self.nu_inp.values().any(|p| self.nu_out.contains_key(p));
+        !output_is_input && checker.is_convex(nodes)
     }
 }
 

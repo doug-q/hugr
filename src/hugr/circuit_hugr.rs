@@ -1,6 +1,6 @@
 //! A simple Hugr for circuit-like computations
 use std::collections::{HashMap, HashSet};
-use std::fs;
+use std::{fs, iter};
 
 use itertools::Itertools;
 use portgraph::algorithms::toposort;
@@ -246,6 +246,8 @@ impl CircuitHugr {
             return Err(InvalidPattern::DisconnectedPattern);
         }
 
+        let to_remove = [self.hugr().root(), self.input_node(), self.output_node()];
+
         // TODO: support MultiPortGraph
         let Hugr {
             ref graph,
@@ -253,18 +255,18 @@ impl CircuitHugr {
             ..
         } = self.0;
 
-        // TODO: support MultiPortGraph
         let mut graph = graph.as_portgraph().clone();
         let mut leaf_ops = UnmanagedDenseMap::new();
 
-        // Remove non-dataflow nodes and input/output
-        let nodes = graph.nodes_iter().collect::<Vec<_>>();
-        for n in nodes {
-            let op = &op_types[n];
-            if let OpType::LeafOp(leaf_op) = op {
-                leaf_ops[n] = leaf_op.clone();
-            } else {
-                graph.remove_node(n);
+        // Remove root and input/output
+        for Node { index: n } in to_remove {
+            graph.remove_node(n);
+        }
+
+        // Copy over the LeafOps
+        for n in graph.nodes_iter() {
+            if let OpType::LeafOp(leaf_op) = &op_types[n] {
+                leaf_ops[n] = leaf_op.clone().into();
             }
         }
 

@@ -3,16 +3,20 @@
 use crate::{hugr::circuit_hugr::CircuitHugr, ops::LeafOp};
 
 use portmatching::{
+    constraint::{Address, WeightedAdjConstraint},
     pattern::{self, Edge},
-    Pattern, WeightedPattern,
+    Pattern, TrieMatcher, WeightedPattern,
 };
+
+/// Type alias for Hugr trie matcher
+pub type HugrMatcher = TrieMatcher<WeightedAdjConstraint<Option<LeafOp>>, Address, HugrPattern>;
 
 /// A pattern for matching Hugr graphs.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub struct HugrPattern(WeightedPattern<LeafOp>);
+pub struct HugrPattern(WeightedPattern<Option<LeafOp>>);
 
 impl Pattern for HugrPattern {
-    type Constraint = <WeightedPattern<LeafOp> as Pattern>::Constraint;
+    type Constraint = <WeightedPattern<Option<LeafOp>> as Pattern>::Constraint;
 
     fn graph(&self) -> &portgraph::PortGraph {
         self.0.graph()
@@ -33,7 +37,7 @@ impl Pattern for HugrPattern {
 
 impl HugrPattern {
     /// Create a new HugrPattern from a WeightedPattern.
-    pub fn new(pattern: WeightedPattern<LeafOp>) -> Self {
+    pub fn new(pattern: WeightedPattern<Option<LeafOp>>) -> Self {
         Self(pattern)
     }
 

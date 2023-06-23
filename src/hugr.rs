@@ -184,13 +184,13 @@ impl Hugr {
                     .graph
                     .port_index(rem_inp_node.index, rem_inp_port.offset)
                     .unwrap();
-                let rem_inp_predecessor_port_index =
-                    self.graph.port_link(rem_inp_port_index).unwrap().port();
+                let rem_inp_predecessor_subport = self.graph.port_link(rem_inp_port_index).unwrap();
+                let rem_inp_predecessor_port_index = rem_inp_predecessor_subport.port();
                 let new_inp_port_index = self
                     .graph
                     .port_index(*new_inp_node_index, rep_inp_port.offset)
                     .unwrap();
-                self.graph.unlink_port(rem_inp_predecessor_port_index);
+                self.graph.unlink_subport(rem_inp_predecessor_subport);
                 self.graph
                     .link_ports(rem_inp_predecessor_port_index, new_inp_port_index)
                     .ok();
@@ -333,13 +333,13 @@ impl Hugr {
     ///
     /// Very naive, assumes the HUGR has no hierarchy.
     // TODO: do not rebuild leaf_ops every time
-    pub fn as_weighted_graph(&self) -> (&PortGraph, UnmanagedDenseMap<NodeIndex, LeafOp>) {
+    pub fn as_weighted_graph(&self) -> (&PortGraph, UnmanagedDenseMap<NodeIndex, Option<LeafOp>>) {
         let mut leaf_ops = UnmanagedDenseMap::new();
 
         for n in self.graph.nodes_iter() {
             let op = &self.op_types[n];
             if let OpType::LeafOp(leaf_op) = op {
-                leaf_ops[n] = leaf_op.clone();
+                leaf_ops[n] = leaf_op.clone().into();
             }
         }
 
