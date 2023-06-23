@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{hugr::Node, Hugr, Port, convex::ConvexChecker};
+use crate::{convex::ConvexChecker, hugr::Node, Hugr, Port};
 use thiserror::Error;
 
 /// Specification of a simple replacement operation.

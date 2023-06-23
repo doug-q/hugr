@@ -1,6 +1,6 @@
 //! A simple Hugr for circuit-like computations
 use std::collections::{HashMap, HashSet};
-use std::{fs, iter};
+use std::iter;
 
 use itertools::Itertools;
 use portgraph::algorithms::toposort;

@@ -32,6 +32,7 @@ cgmath = { version = "0.18.0", features = ["serde"] }
 num-rational = { version = "0.4.1", features = ["serde"] }
 downcast-rs = "1.2.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.97"
 serde_yaml = "0.9.19"
 typetag = "0.2.7"
 smol_str = {version = "0.2.0", features = ["serde"]}
@@ -56,7 +57,6 @@ rmp-serde = "1.1.1"
 webbrowser = "0.8.10"
 url-escape = "0.1.1"
 cool_asserts = "2.0.3"
-serde_json = "1.0.97"
 
 [[bench]]
 name = "bench_main"

@@ -11,6 +11,7 @@
 
 pub mod algorithm;
 pub mod builder;
+pub mod convex;
 pub mod extensions;
 pub mod hugr;
 pub mod macros;
@@ -22,7 +23,6 @@ pub mod resource;
 pub mod rewrite;
 pub mod types;
 mod utils;
-pub mod convex;
 
 pub use crate::hugr::{Direction, Hugr, Node, Port, Wire};
 pub use crate::replacement::SimpleReplacement;
