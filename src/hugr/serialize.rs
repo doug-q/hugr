@@ -13,7 +13,7 @@ use portgraph::{Direction, Hierarchy, LinkError, NodeIndex, UnmanagedDenseMap};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::multiportgraph::MultiPortGraph;
-use super::HugrError;
+use super::{HugrError, HugrView};
 
 /// A wrapper over the available HUGR serialization formats.
 ///
@@ -100,11 +100,33 @@ impl<'de> Deserialize<'de> for Hugr {
     }
 }
 
+fn set_index(
+    n: NodeIndex,
+    hugr: &Hugr,
+    rekey: &mut HashMap<NodeIndex, NodeIndex>,
+    free_indices: &mut impl Iterator<Item = NodeIndex>,
+) {
+    if rekey.contains_key(&n) {
+        return;
+    }
+    if let Some(parent) = hugr.get_parent(n.into()) {
+        set_index(parent.index, hugr, rekey, free_indices);
+        for Node { index: child } in hugr.children(parent) {
+            if rekey.contains_key(&child) {
+                break;
+            }
+            rekey.insert(child, free_indices.next().unwrap());
+        }
+    } else {
+        rekey.insert(n, free_indices.next().unwrap());
+    }
+}
+
 impl TryFrom<&Hugr> for SerHugrV0 {
     type Error = HUGRSerializationError;
 
     fn try_from(
-        Hugr {
+        hugr@Hugr {
             graph,
             hierarchy,
             root,
@@ -114,29 +136,24 @@ impl TryFrom<&Hugr> for SerHugrV0 {
         // We compact the operation nodes during the serialization process,
         // and ignore the copy nodes.
         let mut node_rekey = HashMap::new();
-        let mut nodes: Vec<_> = graph
-            .nodes_iter()
-            .enumerate()
-            .map(|(i, n)| {
-                node_rekey.insert(n, NodeIndex::new(i));
-                // Note that we don't rekey the parent here, as we need to fully
-                // populate `node_rekey` first.
-                let parent = hierarchy.parent(n).unwrap_or_else(|| {
-                    assert_eq!(*root, n);
-                    n
-                });
-                let opt = &op_types[n];
-                Ok((
-                    parent,
-                    graph.num_inputs(n),
-                    graph.num_outputs(n),
-                    opt.clone(),
-                ))
-            })
-            .collect::<Result<_, Self::Error>>()?;
-        for (parent, _, _, _) in &mut nodes {
-            *parent = node_rekey[parent];
+        let mut index_counter = (0..).map(|i| NodeIndex::new(i).into());
+        let mut nodes = vec![None; graph.node_count()];
+        for n in graph.nodes_iter() {
+            set_index(n, hugr, &mut node_rekey, &mut index_counter);
+
+            let parent = node_rekey[&hierarchy.parent(n).unwrap_or(n)];
+            let opt = hugr.get_optype(n.into());
+            nodes[node_rekey[&n].index()] = Some((
+                parent,
+                graph.num_inputs(n),
+                graph.num_outputs(n),
+                opt.clone(),
+            ));
         }
+        let nodes = nodes
+            .into_iter()
+            .collect::<Option<Vec<_>>>()
+            .expect("Could not reach one of the nodes");
 
         let find_offset = |node: NodeIndex, offset: usize, dir: Direction| {
             let sig = &op_types[node].signature();
