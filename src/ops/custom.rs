@@ -25,11 +25,8 @@ pub struct OpaqueOp {
 
 impl OpaqueOp {
     /// Initialize a new named OpaqueOp
-    pub fn new(id: impl Into<SmolStr>, custom: Box<dyn CustomOp>) -> Self {
-        Self {
-            id: id.into(),
-            custom,
-        }
+    pub fn new(id: impl Into<SmolStr>, op: Box<dyn CustomOp>) -> Self {
+        Self { id: id.into(), op }
     }
 
     /// The name of the operation, cached for fast equality checks.

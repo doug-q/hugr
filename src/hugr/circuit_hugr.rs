@@ -1,7 +1,8 @@
 //! A simple Hugr for circuit-like computations
-use std::collections::{HashMap, HashSet};
-use std::iter;
+use std::collections::HashMap;
+use std::{iter, fs};
 
+use bitvec::bitvec;
 use itertools::Itertools;
 use portgraph::algorithms::toposort;
 use portgraph::{Direction, NodeIndex, PortGraph, UnmanagedDenseMap};
@@ -9,7 +10,7 @@ use portmatching::pattern::InvalidPattern;
 
 use crate::convex::ConvexChecker;
 use crate::ops::dataflow::IOTrait;
-use crate::ops::{Input, Output};
+use crate::ops::{Const, ConstValue, Input, Output};
 use crate::{
     ops::{tag::OpTag, LeafOp, OpTrait, OpType},
     pattern::HugrPattern,
@@ -24,7 +25,7 @@ use super::{Hugr, HugrMut, HugrView, Node};
 ///
 /// Everything is a sibling graph. The kind of graph that we
 /// can use SimpleReplacement with.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct CircuitHugr(Hugr);
 
 impl CircuitHugr {
@@ -98,14 +99,22 @@ impl CircuitHugr {
         self.hugr().node_count() - 1
     }
 
+    /// The number of nodes in the circuit
+    pub fn leaves(&self) -> impl Iterator<Item = OpType> + '_ {
+        self.hugr()
+            .nodes()
+            .map(|n| self.hugr().get_optype(n).clone())
+            .filter(|op| op.tag() == OpTag::Leaf)
+    }
+
     /// A convexity checker for the circuit
-    pub fn convex_checker(&self, root: Node) -> ConvexChecker<'_> {
-        ConvexChecker::new(root.index, self.graph())
+    pub fn convex_checker(&self, roots: impl IntoIterator<Item = Node>) -> ConvexChecker<'_> {
+        ConvexChecker::new(roots.into_iter().map(|n| n.index), self.graph())
     }
 
     /// Wires in circuit with no gates
-    pub fn blank_wires(&self) -> HashSet<usize> {
-        let mut blanks = HashSet::new();
+    pub fn blank_wires(&self) -> BitVec {
+        let mut blanks = bitvec![0; self.input_ports().count()];
         let input = self.input_node();
         for (i, p) in self.input_ports().enumerate() {
             let op = self.hugr().get_optype(input);
@@ -118,15 +127,15 @@ impl CircuitHugr {
                 .map(|(n, _)| n)
                 .collect_vec();
             if linked_nodes.is_empty() || linked_nodes.iter().all(|n| n == &self.output_node()) {
-                blanks.insert(i);
+                blanks.set(i, true);
             }
         }
         blanks
     }
 
     /// Remove wires at input indices `remove`.
-    pub fn remove_wires(&mut self, remove: &HashSet<usize>) {
-        let mut remove_output = HashSet::new();
+    pub fn remove_wires(&mut self, remove: &BitVec) {
+        let mut remove_output = bitvec![0; self.output_ports().count()];
         if remove.is_empty() {
             return;
         }
@@ -138,14 +147,14 @@ impl CircuitHugr {
             let old_sig = &self.hugr().get_optype(old_input).signature();
             let mut new_out = Vec::new();
             for i in 0..old_sig.output_count() {
-                if remove.contains(&i) {
+                if remove[i] {
                     let output = self
                         .hugr()
                         .linked_ports(old_input, Port::new_outgoing(i))
                         .next();
                     if let Some((n, p)) = output {
                         assert_eq!(n, self.output_node());
-                        remove_output.insert(p.index());
+                        remove_output.set(p.index(), true);
                     }
                     continue;
                 } else {
@@ -160,12 +169,12 @@ impl CircuitHugr {
         let mut next_input = 0;
         for (i, p) in self.input_ports().enumerate().collect_vec() {
             let Some(link) = self.hugr().linked_ports(old_input, p).next() else {
-                next_input += !remove.contains(&i) as usize;
+                next_input += !remove[i] as usize;
                 continue
             };
             self.hugr_mut().disconnect(link.0, link.1).unwrap();
             self.hugr_mut().disconnect(old_input, p).unwrap();
-            if !remove.contains(&i) {
+            if !remove[i] {
                 self.hugr_mut()
                     .connect(new_input, next_input, link.0, link.1.index())
                     .unwrap();
@@ -188,7 +197,7 @@ impl CircuitHugr {
             let old_sig = &self.hugr().get_optype(old_output).signature();
             let mut new_in = Vec::new();
             for i in 0..old_sig.input_count() {
-                if remove_output.contains(&i) {
+                if remove_output[i] {
                     continue;
                 } else {
                     let t = old_sig.get_df(Port::new_incoming(i)).unwrap();
@@ -200,21 +209,14 @@ impl CircuitHugr {
 
         // Wire up new output
         let mut next_output = 0;
-        for (i, p) in self
-            .hugr()
-            .node_inputs(old_output)
-            .enumerate()
-            .collect_vec()
-        {
+        for (i, p) in self.output_ports().enumerate().collect_vec() {
             let Some(link) = self.hugr().linked_ports(old_output, p).next() else {
-                    next_output += !remove_output.contains(&i) as usize;
-                    println!("No output link");
+                    next_output += !remove_output[i] as usize;
                     continue
                 };
             self.hugr_mut().disconnect(link.0, link.1).unwrap();
             self.hugr_mut().disconnect(old_output, p).unwrap();
-            if !remove_output.contains(&i) {
-                println!("Moving ({old_output:?}, {p:?}) -> ({new_output:?}, {next_output:?})");
+            if !remove_output[i] {
                 self.hugr_mut()
                     .connect(link.0, link.1.index(), new_output, next_output)
                     .unwrap();
@@ -224,7 +226,7 @@ impl CircuitHugr {
 
         // Remove old output
         self.hugr_mut()
-            .move_before_sibling(new_output, old_input)
+            .move_before_sibling(new_output, old_output)
             .unwrap();
         self.hugr_mut().remove_op(old_output).unwrap();
     }
@@ -423,8 +425,10 @@ fn op_hash(op: &OpType) -> Option<usize> {
             LeafOp::X => 10,
             _ => return None,
         },
+        OpType::LoadConstant(_) => 11,
         // copy nodes show up as module
         OpType::Module(_) => 0,
+        &OpType::Const(Const(ConstValue::F64(f))) => (f * 100.).round() as usize,
         _ => return None,
     })
 }
