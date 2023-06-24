@@ -1,6 +1,6 @@
 //! A simple Hugr for circuit-like computations
 use std::collections::HashMap;
-use std::{iter, fs};
+use std::iter;
 
 use bitvec::bitvec;
 use itertools::Itertools;
@@ -10,7 +10,8 @@ use portmatching::pattern::InvalidPattern;
 
 use crate::convex::ConvexChecker;
 use crate::ops::dataflow::IOTrait;
-use crate::ops::{Const, ConstValue, Input, Output};
+use crate::ops::{Const, ConstValue, Input, Output, DFG};
+use crate::types::Signature;
 use crate::{
     ops::{tag::OpTag, LeafOp, OpTrait, OpType},
     pattern::HugrPattern,
@@ -143,7 +144,7 @@ impl CircuitHugr {
         let old_output = self.output_node();
 
         // Create new input
-        let new_input = {
+        let new_input_sig = {
             let old_sig = &self.hugr().get_optype(old_input).signature();
             let mut new_out = Vec::new();
             for i in 0..old_sig.output_count() {
@@ -162,8 +163,9 @@ impl CircuitHugr {
                     new_out.push(t.clone());
                 }
             }
-            self.hugr_mut().add_op(Input::new(new_out))
+            new_out
         };
+        let new_input = self.hugr_mut().add_op(Input::new(new_input_sig.clone()));
 
         // Wire up new input
         let mut next_input = 0;
@@ -189,11 +191,18 @@ impl CircuitHugr {
         self.hugr_mut().remove_op(old_input).unwrap();
 
         if remove_output.is_empty() {
+            let OpType::DFG(old_dfg) = self.hugr().get_optype(self.hugr().root()) else {
+                panic!("expect DFG root");
+            };
+            let signature = Signature::new_df(new_input_sig, old_dfg.signature.output.clone());
+            let new_dfg = DFG { signature };
+            let dfg_root = self.hugr().root();
+            self.hugr_mut().replace_op(dfg_root, new_dfg);
             return;
         }
 
         // Create new output
-        let new_output = {
+        let new_output_sig = {
             let old_sig = &self.hugr().get_optype(old_output).signature();
             let mut new_in = Vec::new();
             for i in 0..old_sig.input_count() {
@@ -204,8 +213,9 @@ impl CircuitHugr {
                     new_in.push(t.clone());
                 }
             }
-            self.hugr_mut().add_op(Output::new(new_in))
+            new_in
         };
+        let new_output = self.hugr_mut().add_op(Output::new(new_output_sig.clone()));
 
         // Wire up new output
         let mut next_output = 0;
@@ -229,6 +239,12 @@ impl CircuitHugr {
             .move_before_sibling(new_output, old_output)
             .unwrap();
         self.hugr_mut().remove_op(old_output).unwrap();
+
+        // Replace DFG signature
+        let signature = Signature::new_df(new_input_sig, new_output_sig);
+        let new_dfg = DFG { signature };
+        let dfg_root = self.hugr().root();
+        self.hugr_mut().replace_op(dfg_root, new_dfg);
     }
 
     /// Consume Hugr into a pattern for matching.

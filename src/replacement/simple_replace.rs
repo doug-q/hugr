@@ -323,7 +323,7 @@ mod test {
     #[test]
     fn test_replace_cx_cross() {
         let q_row: Vec<SimpleType> = vec![LinearType::Qubit.into(), LinearType::Qubit.into()];
-        let mut builder = DFGBuilder::new(q_row.clone(), q_row.clone()).unwrap();
+        let mut builder = DFGBuilder::new(q_row.clone(), q_row).unwrap();
         let mut circ = builder.as_circuit(builder.input_wires().collect());
         circ.append(LeafOp::CX, [0, 1]).unwrap();
         circ.append(LeafOp::CX, [1, 0]).unwrap();

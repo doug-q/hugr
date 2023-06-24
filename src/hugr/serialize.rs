@@ -126,7 +126,7 @@ impl TryFrom<&Hugr> for SerHugrV0 {
     type Error = HUGRSerializationError;
 
     fn try_from(
-        hugr@Hugr {
+        hugr @ Hugr {
             graph,
             hierarchy,
             root,
@@ -136,7 +136,7 @@ impl TryFrom<&Hugr> for SerHugrV0 {
         // We compact the operation nodes during the serialization process,
         // and ignore the copy nodes.
         let mut node_rekey = HashMap::new();
-        let mut index_counter = (0..).map(|i| NodeIndex::new(i).into());
+        let mut index_counter = (0..).map(NodeIndex::new);
         let mut nodes = vec![None; graph.node_count()];
         for n in graph.nodes_iter() {
             set_index(n, hugr, &mut node_rekey, &mut index_counter);
