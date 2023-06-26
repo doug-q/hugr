@@ -412,8 +412,8 @@ pub fn circuit_hash(circ: &CircuitHugr) -> usize {
 
             // TODO check if overflow arithmetic is intended
 
-            edgehash = edgehash.wrapping_mul(31).wrapping_add(outgoing.into());
-            edgehash = edgehash.wrapping_mul(31).wrapping_add(incoming.into());
+            edgehash = edgehash.wrapping_mul(31).wrapping_add(outgoing.index());
+            edgehash = edgehash.wrapping_mul(31).wrapping_add(incoming.index());
 
             myhash = myhash.wrapping_add(edgehash);
         }
