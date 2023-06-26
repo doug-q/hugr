@@ -444,7 +444,7 @@ fn op_hash(op: &OpType) -> Option<usize> {
         OpType::LoadConstant(_) => 11,
         // copy nodes show up as module
         OpType::Module(_) => 0,
-        &OpType::Const(Const(ConstValue::F64(f))) => (f * 100.).round() as usize,
+        &OpType::Const(Const(ConstValue::F64(_))) => 12,
         _ => return None,
     })
 }
