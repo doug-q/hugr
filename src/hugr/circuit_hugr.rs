@@ -383,13 +383,9 @@ pub fn circuit_hash(circ: &CircuitHugr) -> usize {
     // https://github.com/quantum-compiler/quartz/blob/2e13eb7ffb3c5c5fe96cf5b4246f4fd7512e111e/src/quartz/tasograph/tasograph.cpp#L410
     let mut total: usize = 0;
 
-    let mut hash_vals: HashMap<NodeIndex, usize> = HashMap::new();
+    let mut hash_vals = HashMap::new();
 
     let _ophash = |o| 17 * 13 + op_hash(o).expect(&format!("unhashable op: {o:?}"));
-    hash_vals.insert(
-        circ.input_node().index,
-        _ophash(circ.hugr().get_optype(circ.input_node())),
-    );
 
     let initial_nodes = circ
         .graph()
@@ -397,10 +393,6 @@ pub fn circuit_hash(circ: &CircuitHugr) -> usize {
         .filter(|&n| circ.graph().num_inputs(n) == 0 && n != circ.hugr().root().index);
 
     for nid in toposort::<BitVec>(circ.graph(), initial_nodes, Direction::Outgoing) {
-        if hash_vals.contains_key(&nid) {
-            continue;
-        }
-
         let mut myhash = _ophash(circ.hugr().get_optype(nid.into()));
 
         for incoming in circ.graph().inputs(nid) {
