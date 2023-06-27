@@ -400,12 +400,13 @@ pub fn circuit_hash(circ: &CircuitHugr) -> usize {
             let src = circ.graph().port_node(outgoing).expect("invalid port");
             debug_assert!(hash_vals.contains_key(&src));
 
-            let mut edgehash = hash_vals[&src];
+            let mut edgehash: usize = hash_vals[&src];
 
-            // TODO check if overflow arithmetic is intended
+            let outgoing = circ.graph().port_offset(outgoing).expect("invalid port").index();
+            let incoming = circ.graph().port_offset(incoming).expect("invalid port").index();
 
-            edgehash = edgehash.wrapping_mul(31).wrapping_add(outgoing.index());
-            edgehash = edgehash.wrapping_mul(31).wrapping_add(incoming.index());
+            edgehash = edgehash.wrapping_mul(31).wrapping_add(outgoing);
+            edgehash = edgehash.wrapping_mul(31).wrapping_add(incoming);
 
             myhash = myhash.wrapping_add(edgehash);
         }
