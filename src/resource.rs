@@ -20,6 +20,7 @@ use crate::types::{
     AbstractSignature, SignatureDescription, SimpleRow,
 };
 use crate::Hugr;
+mod unify;
 
 /// Trait for resources to provide custom binary code for computing signature.
 pub trait CustomSignatureFunc: Send + Sync {
