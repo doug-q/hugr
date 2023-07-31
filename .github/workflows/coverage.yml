@@ -4,6 +4,9 @@ on:
   schedule:
     # 04:00 daily
     - cron: '0 4 * * *'
+  push:
+    branches:
+      'test-covchecks'
 
 jobs:
   check-coverage:
