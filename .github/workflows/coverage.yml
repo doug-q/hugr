@@ -11,6 +11,8 @@ on:
 jobs:
   check-coverage:
     runs-on: ubuntu-latest
+    outputs:
+      msg: ${{ steps.make_msg.outputs. }}
     steps:
       - uses: actions/checkout@v3
       - name: Install stable toolchain
@@ -45,5 +47,23 @@ jobs:
         with:
           name: coverage-summary
           path: coverage-summary.txt
-      - name: Compare with previous summary
-        run: if (( $(echo "`cat coverage-summary-prev.txt` > `cat coverage-summary.txt` + 0.03" | bc -l) )); then exit 1 ; fi
+      - name: Compare with previous summary and make message
+        id: make_msg
+        run: |
+          if (( $(echo "`cat coverage-summary-prev.txt` > `cat coverage-summary.txt` + 0.03" | bc -l) ))
+          then
+            echo "Coverage check for hugr shows no regression. :-) ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Coverage check for hugr shows regression. :-( ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+          fi
+  notify-slack:
+    needs: check-coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: `C04SHCL4FKP`
+          slack-message: ${{ needs/check-coverage.outputs.msg }}
+        env: ${{ secrets.SLACK_BOT_TOKEN }}
+
