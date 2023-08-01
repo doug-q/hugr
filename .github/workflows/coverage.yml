@@ -64,6 +64,6 @@ jobs:
         uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: 'C04SHCL4FKP'
-          slack-message: ${{ needs/check-coverage.outputs.msg }}
+          slack-message: ${{ needs.check-coverage.outputs.msg }}
         env: ${{ secrets.SLACK_BOT_TOKEN }}
 
