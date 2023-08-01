@@ -65,5 +65,6 @@ jobs:
         with:
           channel-id: 'C04SHCL4FKP'
           slack-message: ${{ needs.check-coverage.outputs.msg }}
-        env: ${{ secrets.SLACK_BOT_TOKEN }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
