@@ -25,6 +25,7 @@ jobs:
           # Downloads the artifact from the most recent successful run
           workflow: 'coverage.yml'
           name: coverage-summary
+      - name: Rename file
         run: mv coverage-summary.txt coverage-summary-prev.txt
       - name: Generate coverage report and summary
         env:
