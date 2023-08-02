@@ -6,6 +6,7 @@ pub mod region;
 pub mod rewrite;
 pub mod serialize;
 pub mod typecheck;
+pub mod subhugr;
 pub mod validate;
 pub mod view;
 
