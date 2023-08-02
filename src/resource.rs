@@ -33,6 +33,9 @@ pub enum SignatureError {
     /// When the type arguments of the node did not match the params declared by the OpDef
     #[error("Type arguments of node did not match params declared by definition: {0}")]
     TypeArgMismatch(#[from] TypeArgError),
+    /// Invalid signature
+    #[error("Invalid signature for operation")]
+    InvalidSignature(),
 }
 
 /// Concrete instantiations of types and operations defined in resources.
