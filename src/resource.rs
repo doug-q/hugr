@@ -20,6 +20,9 @@ use crate::types::{
     AbstractSignature, SignatureDescription, SimpleRow,
 };
 use crate::Hugr;
+
+// TODO: Don't allow dead code
+#[allow(dead_code)]
 mod unify;
 
 /// Trait for resources to provide custom binary code for computing signature.
