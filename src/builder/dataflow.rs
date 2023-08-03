@@ -82,12 +82,8 @@ impl DFGBuilder<Hugr> {
     ///
     /// Error in adding DFG child nodes.
     pub fn new(
-        input: impl Into<SimpleRow>,
-        output: impl Into<SimpleRow>,
+        signature: AbstractSignature,
     ) -> Result<DFGBuilder<Hugr>, BuildError> {
-        let input = input.into();
-        let output = output.into();
-        let signature = AbstractSignature::new_df(input, output);
         let dfg_op = ops::DFG {
             signature: signature.clone(),
         };
