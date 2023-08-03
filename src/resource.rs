@@ -19,7 +19,7 @@ use crate::types::{
     type_param::{TypeArg, TypeParam},
     AbstractSignature, SignatureDescription, SimpleRow,
 };
-use crate::Hugr;
+use crate::{ops, Hugr};
 
 /// Trait for resources to provide custom binary code for computing signature.
 pub trait CustomSignatureFunc: Send + Sync {
@@ -504,6 +504,32 @@ impl TypeDef {
     }
 }
 
+/// A constant value provided by a resource.
+/// Must be an instance of a type available to the resource.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ResourceValue {
+    resource: ResourceId,
+    name: SmolStr,
+    typed_value: ops::Const,
+}
+
+impl ResourceValue {
+    /// Returns a reference to the typed value of this [`ResourceValue`].
+    pub fn typed_value(&self) -> &ops::Const {
+        &self.typed_value
+    }
+
+    /// Returns a reference to the name of this [`ResourceValue`].
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+
+    /// Returns a reference to the resource this [`ResourceValue`] belongs to.
+    pub fn resource(&self) -> &ResourceId {
+        &self.resource
+    }
+}
+
 /// A unique identifier for a resource.
 ///
 /// The actual [`Resource`] is stored externally.
@@ -521,6 +547,8 @@ pub struct Resource {
     pub resource_reqs: ResourceSet,
     /// Types defined by this resource.
     types: HashMap<SmolStr, TypeDef>,
+    /// Static values defined by this resource.
+    values: HashMap<SmolStr, ResourceValue>,
     /// Operation declarations with serializable definitions.
     // Note: serde will serialize this because we configure with `features=["rc"]`.
     // That will clone anything that has multiple references, but each
@@ -539,15 +567,21 @@ impl Resource {
         }
     }
 
-    /// Returns the number of operations of this [`Resource`].
+    /// Returns the number of operations in this [`Resource`].
     pub fn num_operations(&self) -> usize {
         self.operations.len()
     }
 
-    /// Returns the number of types of this [`Resource`].
+    /// Returns the number of types in this [`Resource`].
     pub fn num_types(&self) -> usize {
         self.types.len()
     }
+
+    /// Returns the number of static values in this [`Resource`].
+    pub fn num_values(&self) -> usize {
+        self.values.len()
+    }
+
     /// Allows read-only access to the operations in this Resource
     pub fn get_op(&self, op_name: &str) -> Option<&Arc<OpDef>> {
         self.operations.get(op_name)
@@ -556,6 +590,11 @@ impl Resource {
     /// Allows read-only access to the types in this Resource
     pub fn get_type(&self, type_name: &str) -> Option<&TypeDef> {
         self.types.get(type_name)
+    }
+
+    /// Allows read-only access to the values in this Resource
+    pub fn get_value(&self, type_name: &str) -> Option<&ResourceValue> {
+        self.values.get(type_name)
     }
 
     /// Allows read-only access to the operations in this Resource
@@ -571,14 +610,14 @@ impl Resource {
     /// Add an exported type to the resource.
     pub fn add_type(
         &mut self,
-        name: SmolStr,
+        name: impl Into<SmolStr>,
         params: Vec<TypeParam>,
         description: String,
         tag: TypeDefTag,
     ) -> Result<&mut TypeDef, ResourceBuildError> {
         let ty = TypeDef {
             resource: self.name().into(),
-            name,
+            name: name.into(),
             params,
             description,
             tag,
@@ -592,7 +631,7 @@ impl Resource {
     /// Add an operation definition to the resource.
     fn add_op(
         &mut self,
-        name: SmolStr,
+        name: impl Into<SmolStr>,
         description: String,
         params: Vec<TypeParam>,
         misc: HashMap<String, serde_yaml::Value>,
@@ -600,7 +639,7 @@ impl Resource {
     ) -> Result<&mut Arc<OpDef>, ResourceBuildError> {
         let op = OpDef {
             resource: self.name.clone(),
-            name,
+            name: name.into(),
             description,
             params,
             misc,
@@ -615,7 +654,7 @@ impl Resource {
     /// Create an OpDef with custom binary code to compute the signature
     pub fn add_op_custom_sig(
         &mut self,
-        name: SmolStr,
+        name: impl Into<SmolStr>,
         description: String,
         params: Vec<TypeParam>,
         misc: HashMap<String, serde_yaml::Value>,
@@ -634,7 +673,7 @@ impl Resource {
     /// declarative TAML
     pub fn add_op_decl_sig(
         &mut self,
-        name: SmolStr,
+        name: impl Into<SmolStr>,
         description: String,
         params: Vec<TypeParam>,
         misc: HashMap<String, serde_yaml::Value>,
@@ -648,6 +687,23 @@ impl Resource {
             misc,
             SignatureFunc::FromDecl { inputs, outputs },
         )
+    }
+
+    /// Add a named static value to the resource.
+    pub fn add_value(
+        &mut self,
+        name: impl Into<SmolStr>,
+        typed_value: ops::Const,
+    ) -> Result<&mut ResourceValue, ResourceBuildError> {
+        let resource_value = ResourceValue {
+            resource: self.name().into(),
+            name: name.into(),
+            typed_value,
+        };
+        match self.values.entry(resource_value.name.clone()) {
+            Entry::Occupied(_) => Err(ResourceBuildError::OpDefExists(resource_value.name)),
+            Entry::Vacant(ve) => Ok(ve.insert(resource_value)),
+        }
     }
 }
 

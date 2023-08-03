@@ -14,9 +14,11 @@ use pyo3::prelude::*;
 use crate::ops::constant::CustomConst;
 use crate::resource::ResourceSet;
 use crate::types::type_param::TypeArg;
-use crate::types::{CustomType, SimpleRow, TypeTag};
+use crate::types::{Container, CustomType, HashableType, SimpleRow, TypeTag};
 use crate::values::CustomCheckFail;
-use crate::Resource;
+use crate::{ops, Resource};
+
+pub const PI_NAME: &str = "PI";
 
 pub const fn resource_id() -> SmolStr {
     SmolStr::new_inline("rotations")
@@ -31,7 +33,7 @@ pub fn resource() -> Resource {
 
     resource
         .add_op_custom_sig(
-            "AngleAdd".into(),
+            "AngleAdd",
             "".into(),
             vec![],
             HashMap::default(),
@@ -42,6 +44,20 @@ pub fn resource() -> Resource {
         )
         .unwrap();
 
+    let pi_val = Constant::Angle(AngleValue::Rational(Rational(Rational64::new(1, 1))));
+    let pi_type = Container::<HashableType>::Opaque(
+        resource
+            .get_type("angle")
+            .unwrap()
+            .instantiate_concrete([])
+            .unwrap(),
+    );
+    resource
+        .add_value(
+            PI_NAME,
+            ops::Const::new(pi_val.into(), pi_type.into()).unwrap(),
+        )
+        .unwrap();
     resource
 }
 
