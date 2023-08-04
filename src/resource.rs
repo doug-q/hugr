@@ -17,7 +17,7 @@ use crate::types::CustomType;
 
 // TODO: Don't allow dead code
 #[allow(dead_code)]
-mod unify;
+pub mod unify;
 
 mod op_def;
 pub use op_def::{CustomSignatureFunc, OpDef};

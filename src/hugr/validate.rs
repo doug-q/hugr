@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 
 use crate::ops::validate::{ChildrenEdgeData, ChildrenValidationError, EdgeValidationError};
 use crate::ops::{OpTag, OpTrait, OpType, ValidateOp};
-use crate::resource::ResourceSet;
+use crate::resource::{ResourceSet, unify::InferResourceError};
 use crate::types::{ClassicType, EdgeKind, SimpleType};
 use crate::{Direction, Hugr, Node, Port};
 
@@ -669,6 +669,8 @@ pub enum ValidationError {
     },
     #[error("Missing input resources for node {0:?}")]
     MissingInputResources(Node),
+    #[error("Not good {0}")]
+    CantInfer(#[from] InferResourceError),
 }
 
 #[cfg(feature = "pyo3")]
