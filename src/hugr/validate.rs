@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 
 use crate::ops::validate::{ChildrenEdgeData, ChildrenValidationError, EdgeValidationError};
 use crate::ops::{OpTag, OpTrait, OpType, ValidateOp};
-use crate::resource::{ResourceSet, unify::InferResourceError};
+use crate::resource::{unify::InferResourceError, ResourceSet};
 use crate::types::{ClassicType, EdgeKind, SimpleType};
 use crate::{Direction, Hugr, Node, Port};
 

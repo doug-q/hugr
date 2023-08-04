@@ -301,11 +301,7 @@ where
         let op = self.get_nodetype(node);
         let dfp = OpTag::DataflowParent;
         if op.tag().is_superset(OpTag::DataflowParent) {
-            self.children(node)
-                .take(2)
-                .collect_vec()
-                .try_into()
-                .ok()
+            self.children(node).take(2).collect_vec().try_into().ok()
         } else {
             None
         }
