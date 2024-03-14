@@ -201,6 +201,11 @@ impl CustomSerialized {
             extensions,
         }
     }
+
+    /// Returns the inner value.
+    pub fn value(&self) -> &serde_yaml::Value {
+        &self.value
+    }
 }
 
 #[typetag::serde]
